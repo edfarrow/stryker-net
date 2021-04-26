@@ -257,6 +257,8 @@ namespace Stryker.Core.Options
                 FallbackVersion);
         }
 
+        public bool IsSolutionContext => !string.IsNullOrWhiteSpace(SolutionPath);
+
         private (string AzureSAS, string AzureFileStorageUrl) ValidateAzureFileStorage(string azureSAS, string azureFileStorageUrl)
         {
             if (BaselineProvider != BaselineProvider.AzureFileStorage)

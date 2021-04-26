@@ -98,14 +98,17 @@ namespace Stryker.Core.Initialisation
                     continue;
                 }
 
-                var relativePath = Path.GetRelativePath(projectUnderTestDir, sourceFile);
-                var folderComposite = GetOrBuildFolderComposite(cache, Path.GetDirectoryName(relativePath), projectUnderTestDir, projectUnderTestFolderComposite);
+                var relativePath = options.IsSolutionContext ?
+                    Path.GetRelativePath(Path.GetDirectoryName(options.SolutionPath), sourceFile)
+                    : Path.GetRelativePath(projectUnderTestDir, sourceFile);
+
+                var folderComposite = GetOrBuildFolderComposite(cache, Path.GetDirectoryName(relativePath), projectUnderTestDir, projectUnderTestFolderComposite, options);
 
                 var file = new CsharpFileLeaf()
                 {
                     SourceCode = _fileSystem.File.ReadAllText(sourceFile),
                     FullPath = sourceFile,
-                    RelativePath = Path.GetRelativePath(projectUnderTestDir, sourceFile)
+                    RelativePath = relativePath
                 };
 
                 // Get the syntax tree for the source file
@@ -173,14 +176,16 @@ namespace Stryker.Core.Initialisation
             var rootFolderComposite = new CsharpFolderComposite
             {
                 FullPath = Path.GetFullPath(path),
-                RelativePath = Path.GetRelativePath(projectUnderTestDir, Path.GetFullPath(path))
-            };
+                RelativePath = options.IsSolutionContext ?
+                    Path.GetRelativePath(Path.GetDirectoryName(options.SolutionPath), path)
+                    : Path.GetRelativePath(projectUnderTestDir, path)
+        };
 
             CSharpParseOptions cSharpParseOptions = BuildCsharpParseOptions(analyzerResult, options);
             InjectMutantHelpers(rootFolderComposite, cSharpParseOptions);
 
             rootFolderComposite.Add(
-                FindInputFiles(path, Path.GetDirectoryName(analyzerResult.ProjectFilePath), cSharpParseOptions)
+                FindInputFiles(path, Path.GetDirectoryName(analyzerResult.ProjectFilePath), cSharpParseOptions, options)
             );
             return rootFolderComposite;
         }
@@ -190,18 +195,20 @@ namespace Stryker.Core.Initialisation
         /// Recursively scans the given directory for files to mutate
         /// Deprecated method, should not be maintained
         /// </summary>
-        private CsharpFolderComposite FindInputFiles(string path, string projectUnderTestDir, CSharpParseOptions cSharpParseOptions)
+        private CsharpFolderComposite FindInputFiles(string path, string projectUnderTestDir, CSharpParseOptions cSharpParseOptions, IStrykerOptions options)
         {
 
             var folderComposite = new CsharpFolderComposite
             {
                 FullPath = Path.GetFullPath(path),
-                RelativePath = Path.GetRelativePath(projectUnderTestDir, Path.GetFullPath(path))
+                RelativePath = options.IsSolutionContext ?
+                    Path.GetRelativePath(Path.GetDirectoryName(options.SolutionPath), path)
+                    : Path.GetRelativePath(projectUnderTestDir, path)
             };
 
             foreach (var folder in _fileSystem.Directory.EnumerateDirectories(folderComposite.FullPath).Where(x => !_foldersToExclude.Contains(Path.GetFileName(x))))
             {
-                folderComposite.Add(FindInputFiles(folder, projectUnderTestDir, cSharpParseOptions));
+                folderComposite.Add(FindInputFiles(folder, projectUnderTestDir, cSharpParseOptions, options));
             }
             foreach (var file in _fileSystem.Directory.GetFiles(folderComposite.FullPath, "*.cs", SearchOption.TopDirectoryOnly).Where(f => !f.EndsWith(".xaml.cs")))
             {
@@ -212,7 +219,10 @@ namespace Stryker.Core.Initialisation
                 {
                     SourceCode = _fileSystem.File.ReadAllText(file),
                     FullPath = file,
-                    RelativePath = Path.GetRelativePath(projectUnderTestDir, file)
+                    RelativePath = options.IsSolutionContext ?
+                        Path.GetRelativePath(Path.GetDirectoryName(options.SolutionPath), path)
+                        : Path.GetRelativePath(projectUnderTestDir, path)
+                    //Path.GetRelativePath(projectUnderTestDir, file)
                 };
 
                 // Get the syntax tree for the source file
@@ -248,7 +258,7 @@ namespace Stryker.Core.Initialisation
         }
 
         // get the FolderComposite object representing the the project's folder 'targetFolder'. Build the needed FolderComposite(s) for a complete path
-        private CsharpFolderComposite GetOrBuildFolderComposite(IDictionary<string, CsharpFolderComposite> cache, string targetFolder, string projectUnderTestDir, ProjectComponent<SyntaxTree> inputFiles)
+        private CsharpFolderComposite GetOrBuildFolderComposite(IDictionary<string, CsharpFolderComposite> cache, string targetFolder, string projectUnderTestDir, ProjectComponent<SyntaxTree> inputFiles, IStrykerOptions options)
         {
             if (cache.ContainsKey(targetFolder))
             {
@@ -266,7 +276,9 @@ namespace Stryker.Core.Initialisation
                     var newComposite = new CsharpFolderComposite
                     {
                         FullPath = fullPath,
-                        RelativePath = Path.GetRelativePath(projectUnderTestDir, fullPath),
+                        RelativePath = options.IsSolutionContext ?
+                            Path.GetRelativePath(Path.GetDirectoryName(options.SolutionPath), fullPath)
+                            : Path.GetRelativePath(projectUnderTestDir, fullPath)
                     };
                     if (subDir != null)
                     {

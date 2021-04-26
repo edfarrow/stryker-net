@@ -36,7 +36,7 @@ namespace Stryker.Core.Initialisation
 
         public IEnumerable<IMutationTestProcess> MutateProjects(StrykerOptions options, IReporter reporters)
         {
-            if (IsSolutionContext(options))
+            if (options.IsSolutionContext)
             {
                 // Build and analyze all projects in the solution with buildalyzer
                 var solutionProjects = AnalyzeSolution(options);
@@ -126,11 +126,6 @@ namespace Stryker.Core.Initialisation
 
             return projectsAnalyzerResults.ToList();
         }
-
-        private static bool IsSolutionContext(StrykerOptions options) =>
-            options.SolutionPath != null && FilePathUtils.NormalizePathSeparators(options.BasePath) == FilePathUtils.NormalizePathSeparators(Path.GetDirectoryName(options.SolutionPath));
-
-
 
         private IEnumerable<IAnalyzerResult> FindProjectsUnderTest(IEnumerable<IAnalyzerResult> projectsAnalyzerResults)
         {
